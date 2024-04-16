@@ -27,18 +27,27 @@ class _HomeScreenState extends State<HomeScreen> {
   String region = regions[0];
 
   @override
-  Future<Map<ItemCode,List<StatModel>>> fetchData() async {
-    Map<ItemCode,List<StatModel>> stats = {}; // {PM10 : 10, PM25: 20} 이런식으로 받아오기 위함
-    for (ItemCode itemCode in ItemCode.values){
-      final statModels = await StatRepository.fetchData(
-        itemCode: itemCode,
+  Future<Map<ItemCode, List<StatModel>>> fetchData() async {
+    Map<ItemCode, List<StatModel>> stats =
+        {}; // {PM10 : 10, PM25: 20} 이런식으로 받아오기 위함
+    List<Future> futures = []; // 모든 Promise (future)를 담은 배열
+    for (ItemCode itemCode in ItemCode.values) {
+      futures.add(
+        StatRepository.fetchData(
+          itemCode: itemCode,
+        ),
       );
-
-      stats.addAll({
-        itemCode: statModels
-      });
     }
 
+    final results = await Future.wait(futures); // 모든 Future가 완료될 때까지 기다림
+
+    for(int i=0; i<results.length;i++){
+      final key = ItemCode.values[i];
+      final value = results[i];
+      stats.addAll({
+        key: value
+      });
+    }
     return stats;
   }
 
@@ -47,34 +56,37 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: primaryColor,
         drawer: MainDrawer(
           selectedRegion: region,
-          onRegionTap: (String region){
+          onRegionTap: (String region) {
             setState(() {
               this.region = region;
               Navigator.of(context).pop(); // drawer 닫기
             });
           },
         ),
-        body: FutureBuilder<Map<ItemCode,List<StatModel>>>(
+        body: FutureBuilder<Map<ItemCode, List<StatModel>>>(
           future: fetchData(),
           builder: (context, snapshot) {
-            if (snapshot.hasError){ // 에러 발생
+            if (snapshot.hasError) {
+              // 에러 발생
               return Center(
                 child: Text('에러 발생!'),
               );
             }
 
-            if (!snapshot.hasData){ // 데이터 로딩 중 (connectionState로 확인하면 연결할 때마다 로딩바 듬)
+            if (!snapshot.hasData) {
+              // 데이터 로딩 중 (connectionState로 확인하면 연결할 때마다 로딩바 듬)
               return Center(
                 child: CircularProgressIndicator(),
               );
             }
 
-            Map<ItemCode,List<StatModel>> stats = snapshot.data!;
+            Map<ItemCode, List<StatModel>> stats = snapshot.data!;
             StatModel pm10RecentStat = stats[ItemCode.PM10]![0];
 
             // 1 - 5, 6 - 10, 11 - 15
             // 7이 어떤 범위에 속하는가? 최솟값 1,6,11 기준 7보다 작은 값 중 가장 큰 값 선택
-            final status = DataUtils.getStatusFromItemCodeAndValue(value: pm10RecentStat.seoul, itemCode: ItemCode.PM10);
+            final status = DataUtils.getStatusFromItemCodeAndValue(
+                value: pm10RecentStat.seoul, itemCode: ItemCode.PM10);
 
             return CustomScrollView(
               slivers: [
