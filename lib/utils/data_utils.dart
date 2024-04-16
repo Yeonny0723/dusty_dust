@@ -22,7 +22,7 @@ class DataUtils {
         return '㎍/㎥';
 
       case ItemCode.PM25:
-        return '㎍/㎥';ㄹ 유티
+        return '㎍/㎥';
 
       default:
         return 'ppm';

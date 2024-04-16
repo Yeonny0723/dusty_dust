@@ -11,6 +11,7 @@ import 'package:dusty_dust/const/data.dart';
 import 'package:dusty_dust/const/status_level.dart';
 import 'package:dusty_dust/model/stat_model.dart';
 import 'package:dusty_dust/repository/stat_repository.dart';
+import 'package:dusty_dust/screen/regions.dart';
 import 'package:dusty_dust/utils/data_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
@@ -23,8 +24,9 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  @override
+  String region = regions[0];
 
+  @override
   Future<List<StatModel>> fetchData() async {
     final statModels = await StatRepository.fetchData();
     return statModels;
@@ -33,7 +35,15 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
         backgroundColor: primaryColor,
-        drawer: MainDrawer(),
+        drawer: MainDrawer(
+          selectedRegion: region,
+          onRegionTap: (String region){
+            setState(() {
+              this.region = region;
+              Navigator.of(context).pop(); // drawer 닫기
+            });
+          },
+        ),
         body: FutureBuilder<List<StatModel>>(
           future: fetchData(),
           builder: (context, snapshot) {
@@ -60,6 +70,7 @@ class _HomeScreenState extends State<HomeScreen> {
               slivers: [
                 // 플러터에서 스크롤되는 모든 것
                 MainAppBar(
+                  region: region,
                   stat: recentStat,
                   status: status,
                 ),
