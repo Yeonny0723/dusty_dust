@@ -11,6 +11,7 @@ import 'package:dusty_dust/const/data.dart';
 import 'package:dusty_dust/const/status_level.dart';
 import 'package:dusty_dust/model/stat_model.dart';
 import 'package:dusty_dust/repository/stat_repository.dart';
+import 'package:dusty_dust/utils/data_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 
@@ -53,7 +54,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
             // 1 - 5, 6 - 10, 11 - 15
             // 7이 어떤 범위에 속하는가? 최솟값 1,6,11 기준 7보다 작은 값 중 가장 큰 값 선택
-            final status = statusLevel.where((element) => element.minFineDust < recentStat.seoul).last;
+            final status = DataUtils.getStatusFromItemCodeAndValue(value: recentStat.seoul, itemCode: ItemCode.PM10);
 
             return CustomScrollView(
               slivers: [
