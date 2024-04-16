@@ -1,16 +1,48 @@
+import 'package:dio/dio.dart';
 import 'package:dusty_dust/component/card_title.dart';
 import 'package:dusty_dust/component/category_cart.dart';
+import 'package:dusty_dust/component/hourly_card.dart';
 import 'package:dusty_dust/component/main_app_bar.dart';
 import 'package:dusty_dust/component/main_card.dart';
 import 'package:dusty_dust/component/main_drawer.dart';
 import 'package:dusty_dust/component/main_stat.dart';
 import 'package:dusty_dust/const/colors.dart';
+import 'package:dusty_dust/const/data.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
   @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  @override
+  void initState() { // 생성자 함수. 위젯 생성될 때 최초 1회 실행
+    // TODO: implement initState
+    super.initState();
+    fetchData();
+  }
+
+  fetchData()async{
+    final response = await Dio().get(
+      'http://apis.data.go.kr/B552584/ArpltnStatsSvc/getCtprvnMesureLIst',
+      queryParameters: {
+        'serviceKey': serviceKey,
+        'returnType': 'json',
+        'numOfRows': 30,
+        'pageNo': 1,
+        'itemCode': 'PM10',
+        'dataGubun': 'HOUR',
+        'searchCondition': 'WEEK',
+      },
+    );
+
+    print(response.data);
+  }
+
   Widget build(BuildContext context) {
     return Scaffold(
         backgroundColor: primaryColor,
@@ -27,38 +59,7 @@ class HomeScreen extends StatelessWidget {
                   const SizedBox(
                     height: 16.0,
                   ),
-                  MainCard(
-                      child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      CardTitle(title: '시간별 미세먼지'),
-                      Column(
-                          children: List.generate(24, (index) {
-                        final now = DateTime.now();
-                        final hour = now.hour;
-                        int currentHour = hour - index;
-
-                        if (currentHour < 0) {
-                          currentHour += 24;
-                        }
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-                          child: Row(
-                            children: [ // children 내 모든 child가 같은 너비를 갖도록 하려면 Expanded로 감쌈 (spaceBetween x)
-                              Expanded(child: Text('$currentHour시')),
-                              Expanded(
-                                child: Image.asset(
-                                  'asset/img/good.png',
-                                  height: 20.0,
-                                ),
-                              ),
-                              Expanded(child: Text('좋음', textAlign: TextAlign.right,))
-                            ],
-                          ),
-                        );
-                      }))
-                    ],
-                  ))
+                  HourlyCard()
                 ],
               ),
             )
