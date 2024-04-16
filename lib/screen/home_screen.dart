@@ -27,9 +27,19 @@ class _HomeScreenState extends State<HomeScreen> {
   String region = regions[0];
 
   @override
-  Future<List<StatModel>> fetchData() async {
-    final statModels = await StatRepository.fetchData();
-    return statModels;
+  Future<Map<ItemCode,List<StatModel>>> fetchData() async {
+    Map<ItemCode,List<StatModel>> stats = {}; // {PM10 : 10, PM25: 20} 이런식으로 받아오기 위함
+    for (ItemCode itemCode in ItemCode.values){
+      final statModels = await StatRepository.fetchData(
+        itemCode: itemCode,
+      );
+
+      stats.addAll({
+        itemCode: statModels
+      });
+    }
+
+    return stats;
   }
 
   Widget build(BuildContext context) {
@@ -44,7 +54,7 @@ class _HomeScreenState extends State<HomeScreen> {
             });
           },
         ),
-        body: FutureBuilder<List<StatModel>>(
+        body: FutureBuilder<Map<ItemCode,List<StatModel>>>(
           future: fetchData(),
           builder: (context, snapshot) {
             if (snapshot.hasError){ // 에러 발생
@@ -59,19 +69,19 @@ class _HomeScreenState extends State<HomeScreen> {
               );
             }
 
-            List<StatModel> stats = snapshot.data!;
-            StatModel recentStat = stats[0];
+            Map<ItemCode,List<StatModel>> stats = snapshot.data!;
+            StatModel pm10RecentStat = stats[ItemCode.PM10]![0];
 
             // 1 - 5, 6 - 10, 11 - 15
             // 7이 어떤 범위에 속하는가? 최솟값 1,6,11 기준 7보다 작은 값 중 가장 큰 값 선택
-            final status = DataUtils.getStatusFromItemCodeAndValue(value: recentStat.seoul, itemCode: ItemCode.PM10);
+            final status = DataUtils.getStatusFromItemCodeAndValue(value: pm10RecentStat.seoul, itemCode: ItemCode.PM10);
 
             return CustomScrollView(
               slivers: [
                 // 플러터에서 스크롤되는 모든 것
                 MainAppBar(
                   region: region,
-                  stat: recentStat,
+                  stat: pm10RecentStat,
                   status: status,
                 ),
                 SliverToBoxAdapter(
