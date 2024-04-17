@@ -52,7 +52,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget build(BuildContext context) {
     return Scaffold(
-        backgroundColor: primaryColor,
         drawer: MainDrawer(
           selectedRegion: region,
           onRegionTap: (String region) {
@@ -82,6 +81,7 @@ class _HomeScreenState extends State<HomeScreen> {
             Map<ItemCode, List<StatModel>> stats = snapshot.data!;
             StatModel pm10RecentStat = stats[ItemCode.PM10]![0];
 
+            // 미세먼지 최근 데이터의 현재 상태
             // 1 - 5, 6 - 10, 11 - 15
             // 7이 어떤 범위에 속하는가? 최솟값 1,6,11 기준 7보다 작은 값 중 가장 큰 값 선택
             final status = DataUtils.getStatusFromItemCodeAndValue(
@@ -98,27 +98,38 @@ class _HomeScreenState extends State<HomeScreen> {
                   stat: stat);
             }).toList();
 
-            return CustomScrollView(
-              slivers: [
-                // 플러터에서 스크롤되는 모든 것
-                MainAppBar(
-                  region: region,
-                  stat: pm10RecentStat,
-                  status: status,
-                ),
-                SliverToBoxAdapter(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      CategoryCard(region: region, models: ssModel,),
-                      const SizedBox(
-                        height: 16.0,
-                      ),
-                      HourlyCard()
-                    ],
+            return Container(
+              color: status.primaryColor,
+              child: CustomScrollView(
+                slivers: [
+                  // 플러터에서 스크롤되는 모든 것
+                  MainAppBar(
+                    region: region,
+                    stat: pm10RecentStat,
+                    status: status,
                   ),
-                )
-              ],
+                  SliverToBoxAdapter(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        CategoryCard(
+                          region: region,
+                          models: ssModel,
+                          darkColor: status.darkColor,
+                          lightColor: status.lightColor,
+                        ),
+                        const SizedBox(
+                          height: 16.0,
+                        ),
+                        HourlyCard(
+                          darkColor: status.darkColor,
+                          lightColor: status.lightColor,
+                        )
+                      ],
+                    ),
+                  )
+                ],
+              ),
             );
           },
         ));
