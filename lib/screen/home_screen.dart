@@ -9,6 +9,7 @@ import 'package:dusty_dust/component/main_stat.dart';
 import 'package:dusty_dust/const/colors.dart';
 import 'package:dusty_dust/const/data.dart';
 import 'package:dusty_dust/const/status_level.dart';
+import 'package:dusty_dust/model/stat_and_status_model.dart';
 import 'package:dusty_dust/model/stat_model.dart';
 import 'package:dusty_dust/repository/stat_repository.dart';
 import 'package:dusty_dust/screen/regions.dart';
@@ -41,12 +42,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final results = await Future.wait(futures); // 모든 Future가 완료될 때까지 기다림
 
-    for(int i=0; i<results.length;i++){
+    for (int i = 0; i < results.length; i++) {
       final key = ItemCode.values[i];
       final value = results[i];
-      stats.addAll({
-        key: value
-      });
+      stats.addAll({key: value});
     }
     return stats;
   }
@@ -88,6 +87,17 @@ class _HomeScreenState extends State<HomeScreen> {
             final status = DataUtils.getStatusFromItemCodeAndValue(
                 value: pm10RecentStat.seoul, itemCode: ItemCode.PM10);
 
+            final ssModel = stats.keys.map((key) {
+              final value = stats[key];
+              final stat = value![0];
+
+              return StatAndStatusModel(
+                  itemCode: key,
+                  status: DataUtils.getStatusFromItemCodeAndValue(
+                      value: stat.getLevelFromRegion(region), itemCode: key),
+                  stat: stat);
+            }).toList();
+
             return CustomScrollView(
               slivers: [
                 // 플러터에서 스크롤되는 모든 것
@@ -100,7 +110,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      CategoryCard(),
+                      CategoryCard(region: region, models: ssModel,),
                       const SizedBox(
                         height: 16.0,
                       ),

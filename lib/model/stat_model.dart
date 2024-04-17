@@ -59,7 +59,7 @@ class StatModel {
   StatModel.fromJson(
       {required Map<String, dynamic> json}) // json을 넣어주고 StatModel 형태로 변환하겠다
       : daegu = double.parse(json['daegu'] ?? '0'),
-  // 숫자로 파싱
+        // 숫자로 파싱
         chungnam = double.parse(json['chungnam'] ?? '0'),
         incheon = double.parse(json['incheon'] ?? '0'),
         daejeon = double.parse(json['daejeon'] ?? '0'),
@@ -81,7 +81,8 @@ class StatModel {
 
   static ItemCode parseItemCode(String raw) {
     // enum 타입을 반환하는 함수 선언
-    if (raw == 'PM2.5') { // . <-을 이넘타입으로 선언할 수 없어서 예외처리
+    if (raw == 'PM2.5') {
+      // . <-을 이넘타입으로 선언할 수 없어서 예외처리
       return ItemCode.PM25;
     }
 
@@ -89,4 +90,43 @@ class StatModel {
     // element.name 형태로 객체에서 value를 꺼냄
   }
 
+  double getLevelFromRegion(String region) {
+    if (region == '서울') {
+      return seoul;
+    } else if (region == '경기') {
+      return gyeonggi;
+    } else if (region == '대구') {
+      return daegu;
+    } else if (region == '충남') {
+      return chungnam;
+    } else if (region == '인천') {
+      return incheon;
+    } else if (region == '대전') {
+      return daejeon;
+    } else if (region == '경북') {
+      return gyeongbuk;
+    } else if (region == '세종') {
+      return sejong;
+    } else if (region == '광주') {
+      return gwangju;
+    } else if (region == '전북') {
+      return jeonbuk;
+    } else if (region == '강원') {
+      return gangwon;
+    } else if (region == '울산') {
+      return ulsan;
+    } else if (region == '전남') {
+      return jeonnam;
+    } else if (region == '부산') {
+      return busan;
+    } else if (region == '제주') {
+      return jeju;
+    } else if (region == '충북') {
+      return chungbuk;
+    } else if (region == '경남') {
+      return gyeongnam;
+    } else {
+      throw Exception('알수없는 지역입니다.');
+    }
+  }
 }
