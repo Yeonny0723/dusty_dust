@@ -81,6 +81,7 @@ class _HomeScreenState extends State<HomeScreen> {
             Map<ItemCode, List<StatModel>> stats = snapshot.data!;
             StatModel pm10RecentStat = stats[ItemCode.PM10]![0];
 
+
             // 미세먼지 최근 데이터의 현재 상태
             // 1 - 5, 6 - 10, 11 - 15
             // 7이 어떤 범위에 속하는가? 최솟값 1,6,11 기준 7보다 작은 값 중 가장 큰 값 선택
@@ -121,10 +122,22 @@ class _HomeScreenState extends State<HomeScreen> {
                         const SizedBox(
                           height: 16.0,
                         ),
-                        HourlyCard(
-                          darkColor: status.darkColor,
-                          lightColor: status.lightColor,
-                        )
+                        ...stats.keys.map((itemCode){ // [] 안에 [] 가 위치한 경우 오류가 나기 때문에 spread operator로 풀어주는 작업 필요
+                          final stat = stats[itemCode]!;
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 16.0),
+                            child: HourlyCard(
+                              darkColor: status.darkColor,
+                              lightColor: status.lightColor,
+                              category: DataUtils.getItemCodeKrString(itemCode: itemCode),
+                              region: region,
+                              stats: stat,
+                            ),
+                          );
+                        }).toList(),
+                        const SizedBox(
+                          height: 16.0,
+                        ),
                       ],
                     ),
                   )
