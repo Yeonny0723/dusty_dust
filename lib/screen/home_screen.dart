@@ -26,6 +26,24 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   String region = regions[0];
+  bool isExpanded = true;
+  ScrollController scrollController = ScrollController();
+
+  @override
+  initState() {
+    super.initState();
+    // 스크롤 컨트롤러 최초 등록
+    scrollController.addListener(scrollListener);
+    fetchData();
+  }
+
+  @override
+  dispose() {
+    // 비렌더링시 리스터 삭제 (메모리 관리)
+    scrollController.removeListener(scrollListener);
+    scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Future<Map<ItemCode, List<StatModel>>> fetchData() async {
@@ -50,64 +68,82 @@ class _HomeScreenState extends State<HomeScreen> {
     return stats;
   }
 
+  scrollListener(){
+    bool isExpanded = scrollController.offset < (500 - kToolbarHeight); // 현재 스크롤을 얼만큼 했는지 알 수 있음
+    if(isExpanded != this.isExpanded){
+      setState(() {
+        this.isExpanded = isExpanded;
+      });
+    }
+  }
+
   Widget build(BuildContext context) {
-    return Scaffold(
-        drawer: MainDrawer(
-          selectedRegion: region,
-          onRegionTap: (String region) {
-            setState(() {
-              this.region = region;
-              Navigator.of(context).pop(); // drawer 닫기
-            });
-          },
-        ),
-        body: FutureBuilder<Map<ItemCode, List<StatModel>>>(
-          future: fetchData(),
-          builder: (context, snapshot) {
-            if (snapshot.hasError) {
-              // 에러 발생
-              return Center(
-                child: Text('에러 발생!'),
-              );
-            }
+    return FutureBuilder<Map<ItemCode, List<StatModel>>>(
+      future: fetchData(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          // 에러 발생
+          return Scaffold(
+            body: Center(
+              child: Text('에러 발생!'),
+            ),
+          );
+        }
 
-            if (!snapshot.hasData) {
-              // 데이터 로딩 중 (connectionState로 확인하면 연결할 때마다 로딩바 듬)
-              return Center(
-                child: CircularProgressIndicator(),
-              );
-            }
+        if (!snapshot.hasData) {
+          // 데이터 로딩 중 (connectionState로 확인하면 연결할 때마다 로딩바 듬)
+          return Scaffold(
+            body: Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
 
-            Map<ItemCode, List<StatModel>> stats = snapshot.data!;
-            StatModel pm10RecentStat = stats[ItemCode.PM10]![0];
+        Map<ItemCode, List<StatModel>> stats = snapshot.data!;
+        StatModel pm10RecentStat = stats[ItemCode.PM10]![0];
 
 
-            // 미세먼지 최근 데이터의 현재 상태
-            // 1 - 5, 6 - 10, 11 - 15
-            // 7이 어떤 범위에 속하는가? 최솟값 1,6,11 기준 7보다 작은 값 중 가장 큰 값 선택
-            final status = DataUtils.getStatusFromItemCodeAndValue(
-                value: pm10RecentStat.seoul, itemCode: ItemCode.PM10);
+        // 미세먼지 최근 데이터의 현재 상태
+        // 1 - 5, 6 - 10, 11 - 15
+        // 7이 어떤 범위에 속하는가? 최솟값 1,6,11 기준 7보다 작은 값 중 가장 큰 값 선택
+        final status = DataUtils.getStatusFromItemCodeAndValue(
+            value: pm10RecentStat.seoul, itemCode: ItemCode.PM10);
 
-            final ssModel = stats.keys.map((key) {
-              final value = stats[key];
-              final stat = value![0];
+        final ssModel = stats.keys.map((key) {
+          final value = stats[key];
+          final stat = value![0];
 
-              return StatAndStatusModel(
-                  itemCode: key,
-                  status: DataUtils.getStatusFromItemCodeAndValue(
-                      value: stat.getLevelFromRegion(region), itemCode: key),
-                  stat: stat);
-            }).toList();
+          return StatAndStatusModel(
+              itemCode: key,
+              status: DataUtils.getStatusFromItemCodeAndValue(
+                  value: stat.getLevelFromRegion(region), itemCode: key),
+              stat: stat);
+        }).toList();
 
-            return Container(
+        return Scaffold(
+            drawer: MainDrawer(
+              darkColor: status.darkColor,
+              lightColor: status.lightColor,
+              selectedRegion: region,
+              onRegionTap: (String region) {
+                setState(() {
+                  this.region = region;
+                  Navigator.of(context).pop(); // drawer 닫기
+                });
+              },
+            ),
+            body: Container(
               color: status.primaryColor,
               child: CustomScrollView(
+                controller: scrollController,
                 slivers: [
                   // 플러터에서 스크롤되는 모든 것
                   MainAppBar(
+                    isExpanded: isExpanded,
                     region: region,
                     stat: pm10RecentStat,
                     status: status,
+                    dateTime: pm10RecentStat.dataTime,
                   ),
                   SliverToBoxAdapter(
                     child: Column(
@@ -142,9 +178,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   )
                 ],
-              ),
-            );
-          },
-        ));
+              ),)
+        );
+      },
+    );
   }
 }
