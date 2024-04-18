@@ -16,6 +16,7 @@ import 'package:dusty_dust/screen/regions.dart';
 import 'package:dusty_dust/utils/data_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -46,7 +47,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   @override
-  Future<Map<ItemCode, List<StatModel>>> fetchData() async {
+  Future<void> fetchData() async {
     List<Future> futures = []; // 모든 Promise (future)를 담은 배열
     for (ItemCode itemCode in ItemCode.values) {
       futures.add(
@@ -69,14 +70,6 @@ class _HomeScreenState extends State<HomeScreen> {
         box.put(stat.dataTime.toString(), stat); // dataTime은 중복 저장될 수 없다
       }
     }
-    return ItemCode.values.fold<Map<ItemCode, List<StatModel>>>({},
-        (previousValue, itemCode) {
-      final box = Hive.box<StatModel>(itemCode.name);
-      previousValue.addAll({
-        itemCode: box.values.toList(),
-      });
-      return previousValue;
-    });
   }
 
   scrollListener() {
@@ -90,46 +83,17 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget build(BuildContext context) {
-    return FutureBuilder<Map<ItemCode, List<StatModel>>>(
-      future: fetchData(),
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          // 에러 발생
-          return Scaffold(
-            body: Center(
-              child: Text('에러 발생!'),
-            ),
-          );
-        }
+    return ValueListenableBuilder(
+      valueListenable: Hive.box<StatModel>(ItemCode.PM10.name).listenable(),
+      builder: (context, box, widget) {
+        // PM10 (미세먼지)
 
-        if (!snapshot.hasData) {
-          // 데이터 로딩 중 (connectionState로 확인하면 연결할 때마다 로딩바 듬)
-          return Scaffold(
-            body: Center(
-              child: CircularProgressIndicator(),
-            ),
-          );
-        }
-
-        Map<ItemCode, List<StatModel>> stats = snapshot.data!;
-        StatModel pm10RecentStat = stats[ItemCode.PM10]![0];
-
+        final recentStat = box.values.toList().first as StatModel;
         // 미세먼지 최근 데이터의 현재 상태
         // 1 - 5, 6 - 10, 11 - 15
         // 7이 어떤 범위에 속하는가? 최솟값 1,6,11 기준 7보다 작은 값 중 가장 큰 값 선택
         final status = DataUtils.getStatusFromItemCodeAndValue(
-            value: pm10RecentStat.seoul, itemCode: ItemCode.PM10);
-
-        final ssModel = stats.keys.map((key) {
-          final value = stats[key];
-          final stat = value![0];
-
-          return StatAndStatusModel(
-              itemCode: key,
-              status: DataUtils.getStatusFromItemCodeAndValue(
-                  value: stat.getLevelFromRegion(region), itemCode: key),
-              stat: stat);
-        }).toList();
+            value: recentStat.getLevelFromRegion(region), itemCode: ItemCode.PM10);
 
         return Scaffold(
             drawer: MainDrawer(
@@ -152,9 +116,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   MainAppBar(
                     isExpanded: isExpanded,
                     region: region,
-                    stat: pm10RecentStat,
+                    stat: recentStat,
                     status: status,
-                    dateTime: pm10RecentStat.dataTime,
+                    dateTime: recentStat.dataTime,
                   ),
                   SliverToBoxAdapter(
                     child: Column(
@@ -162,25 +126,21 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         CategoryCard(
                           region: region,
-                          models: ssModel,
                           darkColor: status.darkColor,
                           lightColor: status.lightColor,
                         ),
                         const SizedBox(
                           height: 16.0,
                         ),
-                        ...stats.keys.map((itemCode) {
+                        ...ItemCode.values.map((itemCode) {
                           // [] 안에 [] 가 위치한 경우 오류가 나기 때문에 spread operator로 풀어주는 작업 필요
-                          final stat = stats[itemCode]!;
                           return Padding(
                             padding: const EdgeInsets.only(bottom: 16.0),
                             child: HourlyCard(
                               darkColor: status.darkColor,
                               lightColor: status.lightColor,
-                              category: DataUtils.getItemCodeKrString(
-                                  itemCode: itemCode),
+                              itemCode: itemCode,
                               region: region,
-                              stats: stat,
                             ),
                           );
                         }).toList(),
