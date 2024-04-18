@@ -28,7 +28,7 @@ class HourlyCard extends StatelessWidget {
           children: [
             CardTitle(title: '시간별 ${DataUtils.getItemCodeKrString(itemCode: itemCode)}', backgroundColor: darkColor),
             ValueListenableBuilder<Box>(valueListenable: Hive.box<StatModel>(itemCode.name).listenable(), builder: (context, box, widget)=>
-              Column(children: box.values.map((stat) => renderRow(stat: stat)).toList()))
+              Column(children: box.values.toList().reversed.map((stat) => renderRow(stat: stat)).toList()))
           ],
         ));
   }

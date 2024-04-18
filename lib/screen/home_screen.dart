@@ -48,6 +48,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Future<void> fetchData() async {
+    final now = DateTime.now();
+    final fetchTime = DateTime(now.year, now.month, now.day, now.hour); // 재요청이 일어난 시간
+    final box = Hive.box(ItemCode.PM10.name);
+    final recent = box.values.last as StatModel; // 저장된 시간
+
+    if(recent.dataTime.isAtSameMomentAs(fetchTime)){ // 이미 과거 요청이 일어난 적이 있다면
+      print('이미 최신 데이터가 있습니다.');
+      return; // 재호출을 막음
+    }
+    
     List<Future> futures = []; // 모든 Promise (future)를 담은 배열
     for (ItemCode itemCode in ItemCode.values) {
       futures.add(
@@ -69,6 +79,13 @@ class _HomeScreenState extends State<HomeScreen> {
       for (StatModel stat in value) {
         box.put(stat.dataTime.toString(), stat); // dataTime은 중복 저장될 수 없다
       }
+
+      final allKeys = box.keys.toList();
+      if(allKeys.length > 24){
+        final deleteKeys = allKeys.sublist(0, allKeys.length - 24); // javascript slice와 동일
+        // 호춯 결과값이 배열에 추가되므로, 이전 호출한 데이터인 끝에서 24개의 데이터는 삭제한다.
+        box.deleteAll(deleteKeys);
+      }
     }
   }
 
@@ -88,7 +105,7 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (context, box, widget) {
         // PM10 (미세먼지)
 
-        final recentStat = box.values.toList().first as StatModel;
+        final recentStat = box.values.toList().last as StatModel;
         // 미세먼지 최근 데이터의 현재 상태
         // 1 - 5, 6 - 10, 11 - 15
         // 7이 어떤 범위에 속하는가? 최솟값 1,6,11 기준 7보다 작은 값 중 가장 큰 값 선택
