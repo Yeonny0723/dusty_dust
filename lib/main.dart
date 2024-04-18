@@ -14,7 +14,7 @@ void main() async {
   await Hive.openBox(testBox);
 
   for(ItemCode itemCode in ItemCode.values){ // Hive에서 ItemCode 꺼내기
-    await Hive.openBox(itemCode.name);
+    await Hive.openBox<StatModel>(itemCode.name);
   }
 
   runApp(MaterialApp(

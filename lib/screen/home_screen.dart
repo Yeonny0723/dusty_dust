@@ -47,8 +47,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Future<Map<ItemCode, List<StatModel>>> fetchData() async {
-    Map<ItemCode, List<StatModel>> stats =
-        {}; // {PM10 : 10, PM25: 20} 이런식으로 받아오기 위함
     List<Future> futures = []; // 모든 Promise (future)를 담은 배열
     for (ItemCode itemCode in ItemCode.values) {
       futures.add(
@@ -60,17 +58,31 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final results = await Future.wait(futures); // 모든 Future가 완료될 때까지 기다림
 
+    // Hive에 데이터 넣기
     for (int i = 0; i < results.length; i++) {
-      final key = ItemCode.values[i];
-      final value = results[i];
-      stats.addAll({key: value});
+      final key = ItemCode.values[i]; // itemcode
+      final value = results[i]; // List<StatModel>
+
+      final box = Hive.box<StatModel>(key.name);
+
+      for (StatModel stat in value) {
+        box.put(stat.dataTime.toString(), stat); // dataTime은 중복 저장될 수 없다
+      }
     }
-    return stats;
+    return ItemCode.values.fold<Map<ItemCode, List<StatModel>>>({},
+        (previousValue, itemCode) {
+      final box = Hive.box<StatModel>(itemCode.name);
+      previousValue.addAll({
+        itemCode: box.values.toList(),
+      });
+      return previousValue;
+    });
   }
 
-  scrollListener(){
-    bool isExpanded = scrollController.offset < (500 - kToolbarHeight); // 현재 스크롤을 얼만큼 했는지 알 수 있음
-    if(isExpanded != this.isExpanded){
+  scrollListener() {
+    bool isExpanded = scrollController.offset <
+        (500 - kToolbarHeight); // 현재 스크롤을 얼만큼 했는지 알 수 있음
+    if (isExpanded != this.isExpanded) {
       setState(() {
         this.isExpanded = isExpanded;
       });
@@ -101,7 +113,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
         Map<ItemCode, List<StatModel>> stats = snapshot.data!;
         StatModel pm10RecentStat = stats[ItemCode.PM10]![0];
-
 
         // 미세먼지 최근 데이터의 현재 상태
         // 1 - 5, 6 - 10, 11 - 15
@@ -158,14 +169,16 @@ class _HomeScreenState extends State<HomeScreen> {
                         const SizedBox(
                           height: 16.0,
                         ),
-                        ...stats.keys.map((itemCode){ // [] 안에 [] 가 위치한 경우 오류가 나기 때문에 spread operator로 풀어주는 작업 필요
+                        ...stats.keys.map((itemCode) {
+                          // [] 안에 [] 가 위치한 경우 오류가 나기 때문에 spread operator로 풀어주는 작업 필요
                           final stat = stats[itemCode]!;
                           return Padding(
                             padding: const EdgeInsets.only(bottom: 16.0),
                             child: HourlyCard(
                               darkColor: status.darkColor,
                               lightColor: status.lightColor,
-                              category: DataUtils.getItemCodeKrString(itemCode: itemCode),
+                              category: DataUtils.getItemCodeKrString(
+                                  itemCode: itemCode),
                               region: region,
                               stats: stat,
                             ),
@@ -178,8 +191,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   )
                 ],
-              ),)
-        );
+              ),
+            ));
       },
     );
   }
